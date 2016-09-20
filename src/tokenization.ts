@@ -65,12 +65,19 @@ function tokenize(bracketTypeTable: { [i: number]: string }, tokenTypeTable: { [
 		endState: new State(state.language, ts.EndOfLineState.None, false)
 	};
 
-	function appendFn(startIndex:number, type:string):void {
+	function appendFn(startIndex:number, type:string, text:string = null):void {
 		if(ret.tokens.length === 0 || ret.tokens[ret.tokens.length - 1].scopes !== type) {
-			ret.tokens.push({
-				startIndex: startIndex,
-				scopes: type
-			});
+			if (text && (type.indexOf("identifier") > -1 || type.indexOf("keyword") > -1)) {
+				ret.tokens.push({
+					startIndex: startIndex,
+					scopes: [type + " " + text]
+				});
+			} else {
+				ret.tokens.push({
+					startIndex: startIndex,
+					scopes: [type]
+				});
+			}
 		}
 	}
 
@@ -107,7 +114,7 @@ function tokenize(bracketTypeTable: { [i: number]: string }, tokenTypeTable: { [
 		} else {
 			// everything else
 			appendFn(offset,
-				tokenTypeTable[entry.classification] || '');
+				tokenTypeTable[entry.classification] || '', text.substr(offset, entry.length));
 		}
 
 		offset += entry.length;

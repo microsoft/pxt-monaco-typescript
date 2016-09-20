@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 var gulp = require('gulp');
-var tsb = require('gulp-tsb');
+var ts = require('gulp-typescript');
 var assign = require('object-assign');
 var fs = require('fs');
 var path = require('path');
@@ -18,7 +18,9 @@ var TYPESCRIPT_LIB_SOURCE = path.join(__dirname, 'node_modules', 'typescript', '
 var TYPESCRIPT_LIB_DESTINATION = path.join(__dirname, 'lib');
 
 gulp.task('clean-release', function(cb) { rimraf('release', { maxBusyTries: 1 }, cb); });
-gulp.task('release', ['clean-release','compile'], function() {
+gulp.task('release', ['clean-release','compile'], releaseTask);
+
+function releaseTask(done) {
 
 	var sha1 = getGitVersion(__dirname);
 	var semver = require('./package.json').version;
@@ -40,6 +42,7 @@ gulp.task('release', ['clean-release','compile'], function() {
 			name: 'vs/language/typescript/' + moduleId,
 			out: moduleId + '.js',
 			exclude: exclude,
+			useStrict: true,
 			paths: {
 				'vs/language/typescript': __dirname + '/out'
 			}
@@ -66,18 +69,21 @@ gulp.task('release', ['clean-release','compile'], function() {
 		.pipe(gulp.dest('./release/')),
 
 		gulp.src('src/monaco.d.ts').pipe(gulp.dest('./release/'))
+		.on('end', function() { done() })
+		.on('error', function(err) { done(err) })
 	);
+}
+
+var tsProject = ts.createProject('tsconfig.json', {
+    typescript: require('typescript')
 });
-
-
-var compilation = tsb.create(assign({ verbose: true }, require('./tsconfig.json').compilerOptions));
 
 var tsSources = require('./tsconfig.json').filesGlob;
 
 function compileTask() {
 	return merge(
 		gulp.src('lib/*.js', { base: '.' }),
-		gulp.src(tsSources).pipe(compilation())
+		gulp.src(tsSources).pipe(ts(tsProject))
 	)
 	.pipe(gulp.dest('out'));
 }
@@ -87,6 +93,10 @@ gulp.task('compile', ['clean-out'], compileTask);
 gulp.task('compile-without-clean', compileTask);
 gulp.task('watch', ['compile'], function() {
 	gulp.watch(tsSources, ['compile-without-clean']);
+});
+gulp.task('release-without-clean', ['compile-without-clean'], releaseTask);
+gulp.task('watch-release', ['release'], function() {
+	gulp.watch(tsSources, ['release-without-clean']);
 });
 
 

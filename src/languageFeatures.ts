@@ -16,6 +16,36 @@ import Promise = monaco.Promise;
 import CancellationToken = monaco.CancellationToken;
 import IDisposable = monaco.IDisposable;
 
+let snippets = {
+	"For Loop": {
+		"prefix": "for",
+		"body": [
+			"for (let index = 0; index <= 4; index++) {",
+			"\t$0",
+			"}"
+		],
+		"description": "For Loop"
+	},
+	"If Statement": {
+		"prefix": "if",
+		"body": [
+			"if (${condition}) {",
+			"\t$0",
+			"}"
+		],
+		"description": "If Statement"
+	},
+	"While Statement": {
+		"prefix": "while",
+		"body": [
+			"while (${condition}) {",
+			"\t$0",
+			"}"
+		],
+		"description": "While Statement"
+	}
+}
+
 export abstract class Adapter {
 
 	constructor(protected _worker: (first:Uri, ...more:Uri[]) => Promise<TypeScriptWorker>) {
@@ -54,7 +84,7 @@ export class DiagnostcsAdapter extends Adapter {
 
 		const onModelAdd = (model: monaco.editor.IModel): void => {
 			if (model.getModeId() !== _selector) {
-				return;
+				return undefined;
 			}
 
 			let handle: number;
@@ -146,9 +176,51 @@ export class DiagnostcsAdapter extends Adapter {
 interface MyCompletionItem extends monaco.languages.CompletionItem {
 	uri: Uri;
 	position: Position;
+	name: string;
+    containerName?: string;
+    navigation?: ts.NavigateToItem;
+	skipCodeSnippet?: boolean;
+}
+
+interface TypescriptSnippet {
+    prefix: string;
+    body: string;
+    description?: string;
 }
 
 export class SuggestAdapter extends Adapter implements monaco.languages.CompletionItemProvider {
+
+	private typescriptSnippets: TypescriptSnippet[] = [];
+	private exclusionMap: { [keyword: string]: number } = Object.create(null);
+
+	constructor(worker: (first: Uri, ...more: Uri[]) => Promise<TypeScriptWorker>) {
+		super(worker);
+
+		this.exclusionMap['from'] = 1;
+		this.exclusionMap['import'] = 1;
+		this.exclusionMap['delete'] = 1;
+		this.exclusionMap['with'] = 1;
+		this.exclusionMap['await'] = 1;
+		this.exclusionMap['try'] = 1;
+		this.exclusionMap['catch'] = 1;
+		this.exclusionMap['finally'] = 1;
+		this.exclusionMap['yield'] = 1;
+
+		Object.keys(snippets).forEach((snippetKey) => {
+			let snippet = (snippets as any)[snippetKey];
+			let prefix = (snippet as any).prefix;
+			let body: string = "";
+			(snippet as any).body.forEach((element: string) => {
+				body += element.replace("$0","{{}}").replace(/\${(.*?)}/gi, "{{$1}}") + "\n";
+			});;
+			let description = (snippet as any).description;
+			this.typescriptSnippets.push({
+				prefix: prefix,
+				body: body,
+				description: description
+			})
+		});
+	}
 
 	public get triggerCharacters(): string[] {
 		return ['.'];
@@ -159,22 +231,84 @@ export class SuggestAdapter extends Adapter implements monaco.languages.Completi
 		const resource = model.uri;
 		const offset = this._positionToOffset(resource, position);
 
+		const lineContent = model.getLineContent(position.lineNumber);
+		const wordUnderCursor = model.getWordAtPosition(position);
+		let wordBefore = '';
+		let wordAfter = '';
+		if (wordUnderCursor) {
+			wordBefore = lineContent.substring(wordUnderCursor.startColumn - 1, position.column - 1);
+			wordAfter = lineContent.substring(position.column - 1, wordUnderCursor.endColumn - 1);
+		}
+		const lineContentBefore = lineContent.substr(0, position.column - 1);
+		const lineContentAfter = lineContent.substr(position.column - 1);
+
+		let isNamespace = false;
+        const prevWordInfo = model.getWordUntilPosition(new Position(position.lineNumber, wordInfo.startColumn - 1));
+        if (prevWordInfo && prevWordInfo.word && prevWordInfo.word != "")
+            isNamespace = true;
+
 		return wireCancellationToken(token, this._worker(resource).then(worker => {
-			return worker.getCompletionsAtPosition(resource.toString(), offset);
-		}).then(info => {
-			if (!info) {
-				return;
+			let promises: Promise<any>[] = [];
+			promises.push(worker.getCompletionsAtPosition(resource.toString(), offset));
+			let promise = worker.getNavigateToItems(wordInfo.word).then(navigation => {
+				if (!navigation || navigation.length == 0) return [];
+				function convert(bucket: MyCompletionItem[], entry: ts.NavigateToItem): void {
+					let label = entry.containerName ? entry.containerName + '.' + entry.name : entry.name;
+					let result: MyCompletionItem = {
+						uri: resource,
+						position: position,
+						label: label,
+						name: entry.name,
+						sortText: entry.name,
+						filterText: (isNamespace ? prevWordInfo.word + "." : "") + entry.name,
+						kind: SuggestAdapter.convertKind(entry.kind),
+						containerName: entry.containerName,
+						navigation: entry,
+						skipCodeSnippet: lineContentAfter.trim() != "",
+						textEdit: {
+							text: (isNamespace ? prevWordInfo.word + "." : "") + entry.name,
+							range: new monaco.Range(position.lineNumber,
+									position.column - wordInfo.word.length - (isNamespace ? prevWordInfo.word.length + 1 : 0),
+									position.lineNumber,
+									position.column)
+						}
+					};
+					bucket.push(result);
+				}
+				let result: MyCompletionItem[] = [];
+				navigation
+					.filter(item => (item.kind == Kind.function && item.kindModifiers != "")
+									&& (isNamespace ? item.containerName != prevWordInfo.word : true))
+					.forEach(item => convert(result, item));
+				return result;
+			})
+			promises.push(promise);
+			return Promise.join(promises);
+		}).then(values => {
+			if (!values) {
+				return undefined;
 			}
-			let suggestions: MyCompletionItem[] = info.entries.map(entry => {
+			let info: ts.CompletionInfo = values[0];
+			let moreinfo: MyCompletionItem[] = values[1];
+			if (!info) {
+				return undefined;
+			}
+			let suggestions: MyCompletionItem[] = info.entries
+				.filter(entry => !this.exclusionMap[entry.name])
+				.map(entry => {
 				return {
 					uri: resource,
 					position: position,
 					label: entry.name,
+					name: entry.name,
 					sortText: entry.sortText,
-					kind: SuggestAdapter.convertKind(entry.kind)
+					kind: SuggestAdapter.convertKind(entry.kind),
+					skipCodeSnippet: lineContentAfter.trim() != ""
 				};
 			});
-
+			if (moreinfo) {
+                suggestions = suggestions.concat(moreinfo);
+            }
 			return suggestions;
 		}));
 	}
@@ -184,23 +318,43 @@ export class SuggestAdapter extends Adapter implements monaco.languages.Completi
 		const resource = myItem.uri;
 		const position = myItem.position;
 
-		return wireCancellationToken(token, this._worker(resource).then(worker => {
-			return worker.getCompletionEntryDetails(resource.toString(),
-				this._positionToOffset(resource, position),
-				myItem.label);
+		let entry: TypescriptSnippet = this.typescriptSnippets.filter(snippet => snippet.prefix == myItem.label)[0];
+		if (entry) {
+			return new Promise<monaco.languages.CompletionItem>((resolve, reject) => {
+				myItem.insertText = entry.body;
+				myItem.documentation = entry.description;
+				resolve(myItem);
+			})
+		}
 
-		}).then(details => {
+		return wireCancellationToken(token, this._worker(resource).then(worker => {
+			if (myItem.navigation) {
+				return worker.getCompletionEntryDetailsAndSnippet(myItem.navigation.fileName,
+				myItem.navigation.textSpan.start,
+				myItem.name, myItem.label);
+			} else {
+				return worker.getCompletionEntryDetailsAndSnippet(resource.toString(),
+				this._positionToOffset(resource, position),
+				myItem.name, myItem.label);
+			}
+		}).then(values => {
+			console.log(values);
+			if (!values) {
+				return myItem;
+			}
+			let details: ts.CompletionEntryDetails = values[0];
+			let codeSnippet: string = values[1];
 			if (!details) {
 				return myItem;
 			}
-			return <MyCompletionItem>{
-				uri: resource,
-				position: position,
-				label: details.name,
-				kind: SuggestAdapter.convertKind(details.kind),
-				detail: ts.displayPartsToString(details.displayParts),
-				documentation: ts.displayPartsToString(details.documentation)
-			};
+			myItem.uri = resource;
+            myItem.position = position;
+            myItem.kind = SuggestAdapter.convertKind(details.kind);
+            myItem.detail = ts.displayPartsToString(details.displayParts);
+            myItem.documentation = ts.displayPartsToString(details.documentation);
+            myItem.insertText = !myItem.skipCodeSnippet ? codeSnippet : null;
+			console.log(myItem.insertText);
+			return myItem;
 		}));
 	}
 
@@ -247,7 +401,7 @@ export class SignatureHelpAdapter extends Adapter implements monaco.languages.Si
 		return wireCancellationToken(token, this._worker(resource).then(worker => worker.getSignatureHelpItems(resource.toString(), this._positionToOffset(resource, position))).then(info => {
 
 			if (!info) {
-				return;
+				return undefined;
 			}
 
 			let ret:monaco.languages.SignatureHelp = {
@@ -292,19 +446,57 @@ export class SignatureHelpAdapter extends Adapter implements monaco.languages.Si
 export class QuickInfoAdapter extends Adapter implements monaco.languages.HoverProvider {
 
 	provideHover(model:monaco.editor.IReadOnlyModel, position:Position, token:CancellationToken): Thenable<monaco.languages.Hover> {
-		let resource = model.uri;
+        let resource = model.uri;
+		const wordInfo = model.getWordAtPosition(position);
 
 		return wireCancellationToken(token, this._worker(resource).then(worker => {
-			return worker.getQuickInfoAtPosition(resource.toString(), this._positionToOffset(resource, position));
-		}).then(info => {
-			if (!info) {
-				return;
+			let promises: Promise<any>[] = [];
+			promises.push(worker.getQuickInfoAtPosition(resource.toString(), this._positionToOffset(resource, position)));
+			promises.push(worker.getSignatureHelpItems(resource.toString(), this._positionToOffset(resource, position)));
+			if (wordInfo)
+				promises.push(worker.getCompletionEntryDetails(resource.toString(), this._positionToOffset(resource, position), wordInfo.word));
+			return Promise.join(promises);
+		}).then(values => {
+			if (!values) {
+				return undefined;
 			}
-			let contents = ts.displayPartsToString(info.displayParts);
-			return {
-				range: this._textSpanToRange(resource, info.textSpan),
-				contents: [contents]
-			};
+			let info: ts.QuickInfo = values[0];
+			let signature: ts.SignatureHelpItems = values[1];
+			let completion: ts.CompletionEntryDetails = values[2];
+			if (info && completion) {
+				let contents = ts.displayPartsToString(completion.documentation);
+				if (!contents)
+					contents = ts.displayPartsToString(info.displayParts);
+				return {
+					range: this._textSpanToRange(resource, info.textSpan),
+					contents: [contents]
+				};
+			} else if (signature && signature.items[0]) {
+				if (signature.items[0].parameters.length > 0) {
+					let activeParameter = signature.argumentIndex;
+					let contents = ts.displayPartsToString(signature.items[0].parameters[activeParameter].documentation);
+					if (!contents)
+						contents = ts.displayPartsToString(signature.items[0].parameters[activeParameter].displayParts);
+					let parameterSpan = signature.applicableSpan;
+					if (signature.argumentCount > 1) {
+						let parametersStr = model.getValue().substr(signature.applicableSpan.start, signature.applicableSpan.length);
+						let parametersSplit = parametersStr.split(',');
+						parameterSpan.start = parameterSpan.start + parametersStr.indexOf(parametersSplit[activeParameter]);
+						parameterSpan.length = parametersSplit[activeParameter].length;
+					}
+					return {
+						range: this._textSpanToRange(resource, parameterSpan),
+						contents: [contents]
+					};
+				}
+			} else if (info) {
+				let contents = ts.displayPartsToString(info.displayParts);
+				return {
+					range: this._textSpanToRange(resource, info.textSpan),
+					contents: [contents]
+				};
+			}
+			return undefined;
 		}));
 	}
 }
@@ -320,7 +512,7 @@ export class OccurrencesAdapter extends Adapter implements monaco.languages.Docu
 			return worker.getOccurrencesAtPosition(resource.toString(), this._positionToOffset(resource, position));
 		}).then(entries => {
 			if (!entries) {
-				return;
+				return undefined;
 			}
 			return entries.map(entry => {
 				return <monaco.languages.DocumentHighlight>{
@@ -343,7 +535,7 @@ export class DefinitionAdapter extends Adapter {
 			return worker.getDefinitionAtPosition(resource.toString(), this._positionToOffset(resource, position));
 		}).then(entries => {
 			if (!entries) {
-				return;
+				return undefined;
 			}
 			const result: monaco.languages.Location[] = [];
 			for (let entry of entries) {
@@ -371,7 +563,7 @@ export class ReferenceAdapter extends Adapter implements monaco.languages.Refere
 			return worker.getReferencesAtPosition(resource.toString(), this._positionToOffset(resource, position));
 		}).then(entries => {
 			if (!entries) {
-				return;
+				return undefined;
 			}
 			const result: monaco.languages.Location[] = [];
 			for (let entry of entries) {
@@ -397,7 +589,7 @@ export class OutlineAdapter extends Adapter implements monaco.languages.Document
 
 		return wireCancellationToken(token, this._worker(resource).then(worker => worker.getNavigationBarItems(resource.toString())).then(items => {
 			if (!items) {
-				return;
+				return undefined;
 			}
 
 			const convert = (bucket: monaco.languages.SymbolInformation[], item: ts.NavigationBarItem, containerLabel?: string): void => {

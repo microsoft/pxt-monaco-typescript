@@ -83,7 +83,7 @@ export class TypeScriptWorker implements ts.LanguageServiceHost {
 		} else if (fileName === ES6_LIB.NAME) {
 			text = ES6_LIB.CONTENTS;
 		} else {
-			return;
+			return undefined;
 		}
 
 		return <ts.IScriptSnapshot>{
@@ -158,6 +158,10 @@ export class TypeScriptWorker implements ts.LanguageServiceHost {
 		return Promise.as(this._languageService.getNavigationBarItems(fileName));
 	}
 
+	getNavigateToItems(searchValue: string, maxResultCount?: number): Promise<ts.NavigateToItem[]> {
+		return Promise.as(this._languageService.getNavigateToItems(searchValue, maxResultCount));
+	}
+
 	getFormattingEditsForDocument(fileName: string, options: ts.FormatCodeOptions): Promise<ts.TextChange[]> {
 		return Promise.as(this._languageService.getFormattingEditsForDocument(fileName, options));
 	}
@@ -173,6 +177,120 @@ export class TypeScriptWorker implements ts.LanguageServiceHost {
 	getEmitOutput(fileName: string): Promise<ts.EmitOutput> {
 		return Promise.as(this._languageService.getEmitOutput(fileName));
 	}
+
+	getCompletionEntryDetailsAndSnippet(fileName: string, position: number, entry: string, label: string): Promise<[ts.CompletionEntryDetails, string]> {
+		let typeChecker = this._languageService.getProgram().getTypeChecker();
+		let sourceFile = this._languageService.getProgram().getSourceFile(fileName);
+		let symbol = this._languageService.getCompletionEntrySymbol(fileName, position, entry);
+
+		if (!symbol) return undefined;
+
+		const { displayParts, documentation, symbolKind } = (ts as any).SymbolDisplay.getSymbolDisplayPartsDocumentationAndSymbolKind(typeChecker, symbol, sourceFile, location, location, (ts as any).SemanticMeaning.All);
+		let entryDetails = {
+			name: entry,
+			kindModifiers: (ts as any).SymbolDisplay.getSymbolModifiers(symbol),
+			kind: symbolKind,
+			displayParts,
+			documentation
+		};
+		let codeSnippet = label;
+
+		if (symbol && symbol.valueDeclaration && symbol.valueDeclaration.kind) {
+			let type = typeChecker.getTypeOfSymbolAtLocation(symbol, symbol.valueDeclaration);
+			let signatures = type.getCallSignatures();
+
+			const defaultImgLit = `
+	. . . . .
+	. . . . .
+	. . # . .
+	. . . . .
+	. . . . .
+	`
+			let renderDefaultVal = function (name: string, type: string): string {
+				switch (type) {
+					case "number": return "0";
+					case "boolean": return "false";
+					case "string": return (name == "leds" ? "`" + defaultImgLit + "`" : "\"\"");
+				}
+				return `{{${name}}}`;
+			}
+
+			let renderParameter = function (signature: ts.Signature, parameter: ts.Symbol): string {
+				let parameterType = typeChecker.getTypeOfSymbolAtLocation(parameter, parameter.valueDeclaration);
+				let documentationComment = parameter.getDocumentationComment();
+				// Get parameter defaults from JsDoc:
+				let parameterDoc = ts.displayPartsToString(documentationComment);
+				let paramExamples = /.*eg:(.*)/i.exec(parameterDoc);
+				if (paramExamples) {
+					let reg: RegExp = /(([^, ]+)[, ]*)/gi;
+					let match: RegExpExecArray;
+					let examples: string[] = []
+					while ((match = reg.exec(paramExamples[1])) != null) {
+						examples.push(match[2]);
+					}
+					if (examples.length > 0) {
+						return examples[0];
+					}
+				}
+				if (parameterType && parameterType.flags) {
+					let flags = parameterType.flags;
+					if (flags & ts.TypeFlags.Enum) {
+						// Enum
+						let enumParameter = <ts.EnumType>parameterType;
+						let enumValue = enumParameter.memberTypes[1].symbol.name;
+						if (enumValue)
+							return `${parameterType.symbol.name}.${enumValue}`;
+					} else if (flags & ts.TypeFlags.Anonymous) {
+						// Anonymous Function
+						let functionArgument = "";
+						let returnValue = "";
+						let functionSignature = parameterType.getCallSignatures();
+						if (functionSignature && functionSignature.length > 0) {
+							let displayParts = (ts as any).mapToDisplayParts((writer: ts.DisplayPartsSymbolWriter) => {
+								typeChecker.getSymbolDisplayBuilder().buildSignatureDisplay(functionSignature[0], writer);
+							});
+							let returnType = typeChecker.getReturnTypeOfSignature(functionSignature[0]);
+							if (returnType.flags & ts.TypeFlags.NumberLike)
+								returnValue = "return 0;";
+							else if (returnType.flags & ts.TypeFlags.StringLike)
+								returnValue = "return \"\";";
+							else if (returnType.flags & ts.TypeFlags.BooleanLike)
+								returnValue = "return false;";
+							let displayPartsStr = ts.displayPartsToString(displayParts);
+							functionArgument = displayPartsStr.substr(0, displayPartsStr.lastIndexOf(":"));
+						}
+						return `${functionArgument} => {\n    {{${returnValue}}}\n}`
+					} else if (flags & ts.TypeFlags.Reference) {
+						// Array?
+						return `[]`;
+					} else if (flags & ts.TypeFlags.String
+								|| flags & ts.TypeFlags.Number
+								|| flags & ts.TypeFlags.Boolean
+								|| flags & ts.TypeFlags.Void) {
+						// Primitive type
+						return renderDefaultVal(parameter.name, (parameterType as any).intrinsicName);
+					}
+				}
+				return `{{${parameter.name}}}`;
+			}
+			if (signatures && signatures.length > 0) {
+				let signature = signatures[0];
+				let minArgumentCount = (signature as any).minArgumentCount;
+				let suggestionArgumentNames: string[] = [];
+				signature.parameters.slice(0, minArgumentCount).forEach(parameter => {
+					suggestionArgumentNames.push(renderParameter(signature, parameter));
+				})
+
+				if (suggestionArgumentNames.length > 0) {
+					codeSnippet += '(' + suggestionArgumentNames.join(', ') + ')';
+				} else {
+					codeSnippet += '()';
+				}
+			}
+		}
+		return Promise.as([entryDetails, codeSnippet]);
+	}
+
 }
 
 export interface ICreateData {
