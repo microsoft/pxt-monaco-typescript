@@ -1,7 +1,7 @@
 {
-  "name": "monaco-typescript",
-  "version": "0.6.1",
-  "description": "TypeScript and JavaScript language support for Monaco Editor",
+  "name": "pxt-monaco-typescript",
+  "version": "0.6.2",
+  "description": "TypeScript and JavaScript language support for Monaco Editor in PXT",
   "scripts": {
     "test": "node_modules/.bin/mocha",
     "watch": "node_modules/.bin/gulp watch",
@@ -11,10 +11,10 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Microsoft/monaco-typescript"
+    "url": "https://github.com/Microsoft/pxt-monaco-typescript"
   },
   "bugs": {
-    "url": "https://github.com/Microsoft/monaco-typescript/issues"
+    "url": "https://github.com/Microsoft/pxt-monaco-typescript/issues"
   },
   "devDependencies": {
     "event-stream": "^3.3.2",

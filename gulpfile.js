@@ -29,9 +29,9 @@ function releaseTask(done) {
 	var BUNDLED_FILE_HEADER = [
 		'/*!-----------------------------------------------------------------------------',
 		' * Copyright (c) Microsoft Corporation. All rights reserved.',
-		' * monaco-typescript version: ' + headerVersion,
+		' * pxt-monaco-typescript version: ' + headerVersion,
 		' * Released under the MIT license',
-		' * https://github.com/Microsoft/monaco-typescript/blob/master/LICENSE.md',
+		' * https://github.com/Microsoft/pxt-monaco-typescript/blob/master/LICENSE.md',
 		' *-----------------------------------------------------------------------------*/',
 		''
 	].join('\n');
