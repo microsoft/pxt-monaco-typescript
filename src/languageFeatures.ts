@@ -338,7 +338,6 @@ export class SuggestAdapter extends Adapter implements monaco.languages.Completi
 				myItem.name, myItem.label);
 			}
 		}).then(values => {
-			console.log(values);
 			if (!values) {
 				return myItem;
 			}
@@ -353,7 +352,6 @@ export class SuggestAdapter extends Adapter implements monaco.languages.Completi
             myItem.detail = ts.displayPartsToString(details.displayParts);
             myItem.documentation = ts.displayPartsToString(details.documentation);
             myItem.insertText = !myItem.skipCodeSnippet ? codeSnippet : null;
-			console.log(myItem.insertText);
 			return myItem;
 		}));
 	}
