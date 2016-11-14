@@ -21,6 +21,7 @@ export class WorkerManager {
 
 	private _worker: monaco.editor.MonacoWebWorker<TypeScriptWorker>;
 	private _client: Promise<TypeScriptWorker>;
+
 	constructor(modeId:string, defaults: LanguageServiceDefaultsImpl) {
 		this._modeId = modeId;
 		this._defaults = defaults;

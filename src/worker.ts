@@ -237,7 +237,7 @@ export class TypeScriptWorker implements ts.LanguageServiceHost {
 					if (flags & ts.TypeFlags.Enum) {
 						// Enum
 						let enumParameter = <ts.EnumType>parameterType;
-						let enumValue = enumParameter.memberTypes[1].symbol.name;
+						let enumValue = enumParameter && enumParameter.memberTypes[1] ? enumParameter.memberTypes[1].symbol.name : undefined;
 						if (enumValue)
 							return `${parameterType.symbol.name}.${enumValue}`;
 					} else if (flags & ts.TypeFlags.Anonymous) {
