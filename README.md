@@ -6,14 +6,22 @@ TypeScript and JavaScript language support for the Monaco Editor in PXT.
 
 ## Issues
 
-Please file issues concering `pxt-monaco-typescript` in the [`pxt`-repository](https://github.com/Microsoft/pxt/issues).
+Please file issues concering `pxt-monaco-typescript` in the [`pxt` repository](https://github.com/Microsoft/pxt/issues).
 
-## Dev: cheat sheet
+## Installing
 
-* initial setup with `npm install .`
-* compile with `npm run watch`
+This npm module is bundled and distributed in the [pxt](https://www.npmjs.com/package/pxt) npm module.
+
+
+## Development
+
+* `git clone https://github.com/Microsoft/pxt-monaco-typescript`
+* `cd pxt-monaco-typescript`
+* `npm install .`
+* `npm run watch`
+* open `$/pxt-monaco-typescript/test/index.html` in your favorite browser.
 * test with `npm run test`
-* bundle with `npm run prepublish`
+
 
 ## Code of Conduct
 

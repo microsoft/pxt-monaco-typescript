@@ -56,9 +56,10 @@ function releaseTask(done) {
 			bundleOne('src/mode', ['vs/language/typescript/lib/typescriptServices']),
 			bundleOne('src/worker', ['vs/language/typescript/lib/typescriptServices'])
 		)
+		/*
 		.pipe(uglify({
 			preserveComments: 'some'
-		}))
+		}))*/
 		.pipe(es.through(function(data) {
 			data.contents = new Buffer(
 				BUNDLED_FILE_HEADER
@@ -78,7 +79,7 @@ var tsProject = ts.createProject('tsconfig.json', {
     typescript: require('typescript')
 });
 
-var tsSources = require('./tsconfig.json').filesGlob;
+var tsSources = require('./tsconfig.json').include.concat(require('./tsconfig.json').files);
 
 function compileTask() {
 	return merge(

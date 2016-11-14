@@ -84,7 +84,7 @@ export class DiagnostcsAdapter extends Adapter {
 
 		const onModelAdd = (model: monaco.editor.IModel): void => {
 			if (model.getModeId() !== _selector) {
-				return undefined;
+				return;
 			}
 
 			let handle: number;
@@ -286,12 +286,12 @@ export class SuggestAdapter extends Adapter implements monaco.languages.Completi
 			return Promise.join(promises);
 		}).then(values => {
 			if (!values) {
-				return undefined;
+				return;
 			}
 			let info: ts.CompletionInfo = values[0];
 			let moreinfo: MyCompletionItem[] = values[1];
 			if (!info) {
-				return undefined;
+				return;
 			}
 			let suggestions: MyCompletionItem[] = info.entries
 				.filter(entry => !this.exclusionMap[entry.name])
@@ -399,7 +399,7 @@ export class SignatureHelpAdapter extends Adapter implements monaco.languages.Si
 		return wireCancellationToken(token, this._worker(resource).then(worker => worker.getSignatureHelpItems(resource.toString(), this._positionToOffset(resource, position))).then(info => {
 
 			if (!info) {
-				return undefined;
+				return;
 			}
 
 			let ret:monaco.languages.SignatureHelp = {
@@ -456,7 +456,7 @@ export class QuickInfoAdapter extends Adapter implements monaco.languages.HoverP
 			return Promise.join(promises);
 		}).then(values => {
 			if (!values) {
-				return undefined;
+				return;
 			}
 			let info: ts.QuickInfo = values[0];
 			let signature: ts.SignatureHelpItems = values[1];
@@ -494,7 +494,7 @@ export class QuickInfoAdapter extends Adapter implements monaco.languages.HoverP
 					contents: [contents]
 				};
 			}
-			return undefined;
+			return;
 		}));
 	}
 }
@@ -510,7 +510,7 @@ export class OccurrencesAdapter extends Adapter implements monaco.languages.Docu
 			return worker.getOccurrencesAtPosition(resource.toString(), this._positionToOffset(resource, position));
 		}).then(entries => {
 			if (!entries) {
-				return undefined;
+				return;
 			}
 			return entries.map(entry => {
 				return <monaco.languages.DocumentHighlight>{
@@ -533,7 +533,7 @@ export class DefinitionAdapter extends Adapter {
 			return worker.getDefinitionAtPosition(resource.toString(), this._positionToOffset(resource, position));
 		}).then(entries => {
 			if (!entries) {
-				return undefined;
+				return;
 			}
 			const result: monaco.languages.Location[] = [];
 			for (let entry of entries) {
@@ -561,7 +561,7 @@ export class ReferenceAdapter extends Adapter implements monaco.languages.Refere
 			return worker.getReferencesAtPosition(resource.toString(), this._positionToOffset(resource, position));
 		}).then(entries => {
 			if (!entries) {
-				return undefined;
+				return;
 			}
 			const result: monaco.languages.Location[] = [];
 			for (let entry of entries) {
@@ -587,7 +587,7 @@ export class OutlineAdapter extends Adapter implements monaco.languages.Document
 
 		return wireCancellationToken(token, this._worker(resource).then(worker => worker.getNavigationBarItems(resource.toString())).then(items => {
 			if (!items) {
-				return undefined;
+				return;
 			}
 
 			const convert = (bucket: monaco.languages.SymbolInformation[], item: ts.NavigationBarItem, containerLabel?: string): void => {
