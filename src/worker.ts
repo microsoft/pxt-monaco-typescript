@@ -83,7 +83,7 @@ export class TypeScriptWorker implements ts.LanguageServiceHost {
 		} else if (fileName === ES6_LIB.NAME) {
 			text = ES6_LIB.CONTENTS;
 		} else {
-			return undefined;
+			return;
 		}
 
 		return <ts.IScriptSnapshot>{
@@ -183,7 +183,7 @@ export class TypeScriptWorker implements ts.LanguageServiceHost {
 		let sourceFile = this._languageService.getProgram().getSourceFile(fileName);
 		let symbol = this._languageService.getCompletionEntrySymbol(fileName, position, entry);
 
-		if (!symbol) return undefined;
+		if (!symbol) return;
 
 		const { displayParts, documentation, symbolKind } = (ts as any).SymbolDisplay.getSymbolDisplayPartsDocumentationAndSymbolKind(typeChecker, symbol, sourceFile, location, location, (ts as any).SemanticMeaning.All);
 		let entryDetails = {
