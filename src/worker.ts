@@ -178,6 +178,20 @@ export class TypeScriptWorker implements ts.LanguageServiceHost {
 		return Promise.as(this._languageService.getEmitOutput(fileName));
 	}
 
+	getLeadingComments(fileName: string, position: number, entry: string): Promise<string> {
+		let typeChecker = this._languageService.getProgram().getTypeChecker();
+		let sourceFile = this._languageService.getProgram().getSourceFile(fileName);
+		let symbol = this._languageService.getCompletionEntrySymbol(fileName, position, entry);
+
+		if (!symbol) return;
+
+		let doc = ts.getLeadingCommentRanges(sourceFile.text, position);
+		if (doc) {
+			let cmt = doc.map(r => sourceFile.text.slice(r.pos, r.end)).join("\n");
+			return Promise.as(cmt);
+		}
+	}
+
 	getCompletionEntryDetailsAndSnippet(fileName: string, position: number, entry: string, label: string): Promise<[ts.CompletionEntryDetails, string]> {
 		let typeChecker = this._languageService.getProgram().getTypeChecker();
 		let sourceFile = this._languageService.getProgram().getSourceFile(fileName);
