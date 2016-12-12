@@ -186,10 +186,11 @@ export class TypeScriptWorker implements ts.LanguageServiceHost {
 		if (!symbol) return;
 
 		let doc = ts.getLeadingCommentRanges(sourceFile.text, position);
+		let cmt = '';
 		if (doc) {
-			let cmt = doc.map(r => sourceFile.text.slice(r.pos, r.end)).join("\n");
-			return Promise.as(cmt);
+			cmt = doc.map(r => sourceFile.text.slice(r.pos, r.end)).join("\n");
 		}
+		return Promise.as(cmt);
 	}
 
 	getCompletionEntryDetailsAndSnippet(fileName: string, position: number, entry: string, label: string): Promise<[ts.CompletionEntryDetails, string]> {
@@ -251,7 +252,7 @@ export class TypeScriptWorker implements ts.LanguageServiceHost {
 					if (flags & ts.TypeFlags.Enum) {
 						// Enum
 						let enumParameter = <ts.EnumType>parameterType;
-						let enumValue = enumParameter && enumParameter.memberTypes[1] ? enumParameter.memberTypes[1].symbol.name : undefined;
+						let enumValue = enumParameter && enumParameter.memberTypes && enumParameter.memberTypes[1] ? enumParameter.memberTypes[1].symbol.name : undefined;
 						if (enumValue)
 							return `${parameterType.symbol.name}.${enumValue}`;
 					} else if (flags & ts.TypeFlags.Anonymous) {
