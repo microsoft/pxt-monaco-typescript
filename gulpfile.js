@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 var gulp = require('gulp');
-var ts = require('gulp-typescript');
+var tsb = require('gulp-tsb');
 var assign = require('object-assign');
 var fs = require('fs');
 var path = require('path');
@@ -75,16 +75,14 @@ function releaseTask(done) {
 	);
 }
 
-var tsProject = ts.createProject('tsconfig.json', {
-    typescript: require('typescript')
-});
+var compilation = tsb.create(assign({ verbose: true }, require('./tsconfig.json').compilerOptions));
 
 var tsSources = require('./tsconfig.json').include.concat(require('./tsconfig.json').files);
 
 function compileTask() {
 	return merge(
 		gulp.src('lib/*.js', { base: '.' }),
-		gulp.src(tsSources).pipe(ts(tsProject))
+		gulp.src(tsSources).pipe(compilation())
 	)
 	.pipe(gulp.dest('out'));
 }

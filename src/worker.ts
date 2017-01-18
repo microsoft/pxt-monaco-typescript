@@ -254,29 +254,32 @@ export class TypeScriptWorker implements ts.LanguageServiceHost {
 						let enumValue = enumParameter && enumParameter.memberTypes && enumParameter.memberTypes[1] ? enumParameter.memberTypes[1].symbol.name : undefined;
 						if (enumValue)
 							return `${parameterType.symbol.name}.${enumValue}`;
-					} else if (flags & ts.TypeFlags.Anonymous) {
-						// Anonymous Function
-						let functionArgument = "";
-						let returnValue = "";
-						let functionSignature = parameterType.getCallSignatures();
-						if (functionSignature && functionSignature.length > 0) {
-							let displayParts = (ts as any).mapToDisplayParts((writer: ts.DisplayPartsSymbolWriter) => {
-								typeChecker.getSymbolDisplayBuilder().buildSignatureDisplay(functionSignature[0], writer);
-							});
-							let returnType = typeChecker.getReturnTypeOfSignature(functionSignature[0]);
-							if (returnType.flags & ts.TypeFlags.NumberLike)
-								returnValue = "return 0;";
-							else if (returnType.flags & ts.TypeFlags.StringLike)
-								returnValue = "return \"\";";
-							else if (returnType.flags & ts.TypeFlags.BooleanLike)
-								returnValue = "return false;";
-							let displayPartsStr = ts.displayPartsToString(displayParts);
-							functionArgument = displayPartsStr.substr(0, displayPartsStr.lastIndexOf(":"));
+					} else if (flags & ts.TypeFlags.Object) {
+						let objectFlags = (parameterType as ts.ObjectType).objectFlags;
+						if (objectFlags && ts.ObjectFlags.Anonymous) {
+							// Anonymous Function
+							let functionArgument = "";
+							let returnValue = "";
+							let functionSignature = parameterType.getCallSignatures();
+							if (functionSignature && functionSignature.length > 0) {
+								let displayParts = (ts as any).mapToDisplayParts((writer: ts.DisplayPartsSymbolWriter) => {
+									typeChecker.getSymbolDisplayBuilder().buildSignatureDisplay(functionSignature[0], writer);
+								});
+								let returnType = typeChecker.getReturnTypeOfSignature(functionSignature[0]);
+								if (returnType.flags & ts.TypeFlags.NumberLike)
+									returnValue = "return 0;";
+								else if (returnType.flags & ts.TypeFlags.StringLike)
+									returnValue = "return \"\";";
+								else if (returnType.flags & ts.TypeFlags.BooleanLike)
+									returnValue = "return false;";
+								let displayPartsStr = ts.displayPartsToString(displayParts);
+								functionArgument = displayPartsStr.substr(0, displayPartsStr.lastIndexOf(":"));
+							}
+							return `${functionArgument} => {\n    {{${returnValue}}}\n}`
+						} else if (objectFlags && ts.ObjectFlags.Reference) {
+							// Array?
+							return `[]`;
 						}
-						return `${functionArgument} => {\n    {{${returnValue}}}\n}`
-					} else if (flags & ts.TypeFlags.Reference) {
-						// Array?
-						return `[]`;
 					} else if (flags & ts.TypeFlags.String
 								|| flags & ts.TypeFlags.Number
 								|| flags & ts.TypeFlags.Boolean

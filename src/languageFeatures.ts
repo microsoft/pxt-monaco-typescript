@@ -205,6 +205,9 @@ export class SuggestAdapter extends Adapter implements monaco.languages.Completi
 		this.exclusionMap['catch'] = 1;
 		this.exclusionMap['finally'] = 1;
 		this.exclusionMap['yield'] = 1;
+		this.exclusionMap['as'] = 1;
+		this.exclusionMap['async'] = 1;
+		this.exclusionMap['any'] = 1;
 
 		Object.keys(snippets).forEach((snippetKey) => {
 			let snippet = (snippets as any)[snippetKey];
