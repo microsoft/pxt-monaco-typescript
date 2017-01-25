@@ -1,4 +1,4 @@
-# PXT TypeScript Language Service
+# TypeScript Language Service (PXT fork)
 
 TypeScript and JavaScript language support for the Monaco Editor in PXT.
 

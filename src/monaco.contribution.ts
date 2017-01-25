@@ -10,7 +10,7 @@ import Emitter = monaco.Emitter;
 import IEvent = monaco.IEvent;
 import IDisposable = monaco.IDisposable;
 
-declare var require:<T>(moduleId:[string], callback:(module:T)=>void)=>void;
+declare var require: <T>(moduleId: [string], callback: (module: T) => void) => void;
 
 // --- TypeScript configuration and defaults ---------
 
@@ -29,7 +29,7 @@ export class LanguageServiceDefaultsImpl implements monaco.languages.typescript.
 		this.setDiagnosticsOptions(diagnosticsOptions);
 	}
 
-	get onDidChange(): IEvent<monaco.languages.typescript.LanguageServiceDefaults>{
+	get onDidChange(): IEvent<monaco.languages.typescript.LanguageServiceDefaults> {
 		return this._onDidChange.event;
 	}
 
@@ -99,27 +99,36 @@ enum ModuleKind {
 	AMD = 2,
 	UMD = 3,
 	System = 4,
-	ES6 = 5,
 	ES2015 = 5,
 }
-
 enum JsxEmit {
 	None = 0,
 	Preserve = 1,
 	React = 2,
 }
-
 enum NewLineKind {
 	CarriageReturnLineFeed = 0,
 	LineFeed = 1,
 }
-
+interface LineAndCharacter {
+	line: number;
+	character: number;
+}
+enum ScriptKind {
+	Unknown = 0,
+	JS = 1,
+	JSX = 2,
+	TS = 3,
+	TSX = 4,
+}
 enum ScriptTarget {
 	ES3 = 0,
 	ES5 = 1,
-	ES6 = 2,
 	ES2015 = 2,
-	Latest = 2,
+	ES2016 = 3,
+	ES2017 = 4,
+	ESNext = 5,
+	Latest = 5,
 }
 
 enum ModuleResolutionKind {
@@ -139,20 +148,20 @@ const javascriptDefaults = new LanguageServiceDefaultsImpl(
 
 function getTypeScriptWorker(): monaco.Promise<any> {
 	return new monaco.Promise((resolve, reject) => {
- 		withMode((mode) => {
- 			mode.getTypeScriptWorker()
- 				.then(resolve, reject);
- 		});
- 	});
+		withMode((mode) => {
+			mode.getTypeScriptWorker()
+				.then(resolve, reject);
+		});
+	});
 }
 
 function getJavaScriptWorker(): monaco.Promise<any> {
 	return new monaco.Promise((resolve, reject) => {
- 		withMode((mode) => {
- 			mode.getJavaScriptWorker()
- 				.then(resolve, reject);
- 		});
- 	});
+		withMode((mode) => {
+			mode.getJavaScriptWorker()
+				.then(resolve, reject);
+		});
+	});
 }
 
 // Export API
@@ -173,13 +182,13 @@ monaco.languages.typescript = createAPI();
 
 // --- Registration to monaco editor ---
 
-function withMode(callback:(module:typeof mode)=>void): void {
+function withMode(callback: (module: typeof mode) => void): void {
 	require<typeof mode>(['vs/language/typescript/src/mode'], callback);
 }
 
 monaco.languages.register({
 	id: 'typescript',
-	extensions: ['.ts'],
+	extensions: ['.ts', '.tsx'],
 	aliases: ['TypeScript', 'ts', 'typescript'],
 	mimetypes: ['text/typescript']
 });
@@ -189,7 +198,7 @@ monaco.languages.onLanguage('typescript', () => {
 
 monaco.languages.register({
 	id: 'javascript',
-	extensions: ['.js', '.es6'],
+	extensions: ['.js', '.es6', '.jsx'],
 	firstLine: '^#!.*\\bnode',
 	filenames: ['jakefile'],
 	aliases: ['JavaScript', 'javascript', 'js'],

@@ -70,12 +70,12 @@ function tokenize(bracketTypeTable: { [i: number]: string }, tokenTypeTable: { [
 			if (text && (type.indexOf("identifier") > -1 || type.indexOf("keyword") > -1)) {
 				ret.tokens.push({
 					startIndex: startIndex,
-					scopes: [type + " " + text]
+					scopes: type + " " + text
 				});
 			} else {
 				ret.tokens.push({
 					startIndex: startIndex,
-					scopes: [type]
+					scopes: type
 				});
 			}
 		}
