@@ -256,7 +256,7 @@ export class TypeScriptWorker implements ts.LanguageServiceHost {
 							return `${parameterType.symbol.name}.${enumValue}`;
 					} else if (flags & ts.TypeFlags.Object) {
 						let objectFlags = (parameterType as ts.ObjectType).objectFlags;
-						if (objectFlags && ts.ObjectFlags.Anonymous) {
+						if (objectFlags & ts.ObjectFlags.Anonymous) {
 							// Anonymous Function
 							let functionArgument = "";
 							let returnValue = "";
@@ -276,7 +276,7 @@ export class TypeScriptWorker implements ts.LanguageServiceHost {
 								functionArgument = displayPartsStr.substr(0, displayPartsStr.lastIndexOf(":"));
 							}
 							return `${functionArgument} => {\n    {{${returnValue}}}\n}`
-						} else if (objectFlags && ts.ObjectFlags.Reference) {
+						} else if (objectFlags & ts.ObjectFlags.Reference) {
 							// Array?
 							return `[]`;
 						}
