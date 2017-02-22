@@ -276,9 +276,12 @@ export class TypeScriptWorker implements ts.LanguageServiceHost {
 								functionArgument = displayPartsStr.substr(0, displayPartsStr.lastIndexOf(":"));
 							}
 							return `${functionArgument} => {\n    {{${returnValue}}}\n}`
-						} else if (objectFlags & ts.ObjectFlags.Reference) {
-							// Array?
-							return `[]`;
+						} else {
+							const typeString = typeChecker.typeToString(parameterType);
+ 							const bracketIndex = typeString.indexOf("[]");
+ 							if (flags & ts.ObjectFlags.Tuple || (bracketIndex !== -1 && bracketIndex === typeString.length - 2)) {
+ 								return `[]`;
+ 							}
 						}
 					} else if (flags & ts.TypeFlags.String
 						|| flags & ts.TypeFlags.Number
