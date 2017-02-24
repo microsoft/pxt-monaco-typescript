@@ -192,12 +192,21 @@ export class TypeScriptWorker implements ts.LanguageServiceHost {
 		return Promise.as(cmt);
 	}
 
-	getCompletionEntryDetailsAndSnippet(fileName: string, position: number, entry: string, label: string): Promise<[ts.CompletionEntryDetails, string]> {
+	getCompletionEntryDetailsAndSnippet(fileName: string, position: number, entry: string, label: string, parent?: string): Promise<[ts.CompletionEntryDetails, string]> {
 		let typeChecker = this._languageService.getProgram().getTypeChecker();
 		let sourceFile = this._languageService.getProgram().getSourceFile(fileName);
 		let symbol = this._languageService.getCompletionEntrySymbol(fileName, position, entry);
 
-		if (!symbol) return;
+		if (!symbol) {
+			if (parent) {
+				symbol = this._languageService.getCompletionEntrySymbol(fileName, position, parent);
+				symbol = symbol ? symbol.members[entry] : undefined;
+			}
+
+			if (!symbol) {
+				return;
+			}
+		}
 
 		const { displayParts, documentation, symbolKind } = (ts as any).SymbolDisplay.getSymbolDisplayPartsDocumentationAndSymbolKind(typeChecker, symbol, sourceFile, location, location, (ts as any).SemanticMeaning.All);
 		let entryDetails = {
