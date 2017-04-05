@@ -272,18 +272,16 @@ export class SuggestAdapter extends Adapter implements monaco.languages.Completi
 						label: label,
 						name: entry.name,
 						sortText: entry.name,
-						filterText: (isNamespace ? prevWordInfo.word + "." : "") + entry.name,
+						filterText: (isNamespace ? prevWordInfo.word + "." : (entry.containerName ? entry.containerName + "." : "")) + entry.name,
 						kind: SuggestAdapter.convertKind(entry.kind),
 						containerName: entry.containerName,
 						navigation: entry,
 						skipCodeSnippet: lineContentAfter.trim() != "",
-						textEdit: {
-							text: (isNamespace ? prevWordInfo.word + "." : "") + entry.name,
-							range: new monaco.Range(position.lineNumber,
+						insertText: (isNamespace ? prevWordInfo.word + "." : (entry.containerName ? entry.containerName + "." : "")) + entry.name,
+						range: new monaco.Range(position.lineNumber,
 								position.column - wordInfo.word.length - (isNamespace ? prevWordInfo.word.length + 1 : 0),
 								position.lineNumber,
 								position.column)
-						}
 					};
 					bucket.push(result);
 				}
