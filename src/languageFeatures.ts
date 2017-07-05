@@ -26,6 +26,15 @@ let snippets = {
 		],
 		"description": "For Loop"
 	},
+	"Function Statement": {
+		"prefix": "function",
+		"body": [
+			"function ${1:name}() {",
+			"\t$0",
+			"}"
+		],
+		"description": "Function Statement"
+	},
 	"If Statement": {
 		"prefix": "if",
 		"body": [
@@ -34,6 +43,17 @@ let snippets = {
 			"}"
 		],
 		"description": "If Statement"
+	},
+	"If-Else Statement": {
+		"prefix": "ifelse",
+		"body": [
+			"if (${1:condition}) {",
+			"\t$0",
+			"} else {",
+			"\t",
+			"}"
+		],
+		"description": "If-Else Statement"
 	},
 	"While Statement": {
 		"prefix": "while",
