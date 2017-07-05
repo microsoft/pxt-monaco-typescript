@@ -248,7 +248,7 @@ export class TypeScriptWorker implements ts.LanguageServiceHost {
 					case "boolean": return "false";
 					case "string": return (name == "leds" ? "`" + defaultImgLit + "`" : "\"\"");
 				}
-				return `{{${name}}}`;
+				return `\${1:${name}}`;
 			}
 
 			let renderParameter = function (signature: ts.Signature, parameter: ts.Symbol): string {
@@ -281,7 +281,7 @@ export class TypeScriptWorker implements ts.LanguageServiceHost {
 						if (objectFlags & ts.ObjectFlags.Anonymous) {
 							// Anonymous Function
 							let functionArgument = "";
-							let returnValue = "";
+							let returnValue = "$0";
 							let functionSignature = parameterType.getCallSignatures();
 							if (functionSignature && functionSignature.length > 0) {
 								let displayParts = (ts as any).mapToDisplayParts((writer: ts.DisplayPartsSymbolWriter) => {
@@ -289,15 +289,15 @@ export class TypeScriptWorker implements ts.LanguageServiceHost {
 								});
 								let returnType = typeChecker.getReturnTypeOfSignature(functionSignature[0]);
 								if (returnType.flags & ts.TypeFlags.NumberLike)
-									returnValue = "return 0;";
+									returnValue = "return 0;$0";
 								else if (returnType.flags & ts.TypeFlags.StringLike)
-									returnValue = "return \"\";";
+									returnValue = "return \"\";$0";
 								else if (returnType.flags & ts.TypeFlags.BooleanLike)
-									returnValue = "return false;";
+									returnValue = "return false;$0";
 								let displayPartsStr = ts.displayPartsToString(displayParts);
 								functionArgument = displayPartsStr.substr(0, displayPartsStr.lastIndexOf(":"));
 							}
-							return `${functionArgument} => {\n    {{${returnValue}}}\n}`
+							return `${functionArgument} => {\n\t${returnValue}\n}`
 						} else {
 							const typeString = typeChecker.typeToString(parameterType);
  							const bracketIndex = typeString.indexOf("[]");
@@ -313,7 +313,7 @@ export class TypeScriptWorker implements ts.LanguageServiceHost {
 						return renderDefaultVal(parameter.name, (parameterType as any).intrinsicName);
 					}
 				}
-				return `{{${parameter.name}}}`;
+				return `\${1:${parameter.name}}`;
 			}
 			if (signatures && signatures.length > 0) {
 				let signature = signatures[0];

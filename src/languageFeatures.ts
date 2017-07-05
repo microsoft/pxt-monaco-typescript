@@ -20,7 +20,7 @@ let snippets = {
 	"For Loop": {
 		"prefix": "for",
 		"body": [
-			"for (let index = 0; index <= 4; index++) {",
+			"for (let ${1:index} = 0; ${1:index} < 4; ${1:index}++) {",
 			"\t$0",
 			"}"
 		],
@@ -29,7 +29,7 @@ let snippets = {
 	"If Statement": {
 		"prefix": "if",
 		"body": [
-			"if (${condition}) {",
+			"if (${1:condition}) {",
 			"\t$0",
 			"}"
 		],
@@ -38,7 +38,7 @@ let snippets = {
 	"While Statement": {
 		"prefix": "while",
 		"body": [
-			"while (${condition}) {",
+			"while (${1:condition}) {",
 			"\t$0",
 			"}"
 		],
@@ -224,16 +224,20 @@ export class SuggestAdapter extends Adapter implements monaco.languages.Completi
 		this.exclusionMap['yield'] = 1;
 		this.exclusionMap['as'] = 1;
 		this.exclusionMap['async'] = 1;
+		this.exclusionMap['abstract'] = 1;
 		this.exclusionMap['any'] = 1;
+		this.exclusionMap['undefined'] = 1;
+		this.exclusionMap['throw'] = 1;
+		this.exclusionMap['symbol'] = 1;
+		this.exclusionMap['super'] = 1;
+		this.exclusionMap['require'] = 1;
+		this.exclusionMap['readonly'] = 1;
 
 		Object.keys(snippets).forEach((snippetKey) => {
-			let snippet = (snippets as any)[snippetKey];
-			let prefix = (snippet as any).prefix;
-			let body: string = "";
-			(snippet as any).body.forEach((element: string) => {
-				body += element.replace("$0", "{{}}").replace(/\${(.*?)}/gi, "{{$1}}") + "\n";
-			});;
-			let description = (snippet as any).description;
+			const snippet = (snippets as any)[snippetKey];
+			const prefix = (snippet as any).prefix;
+			const body =  (snippet as any).body.join('\n');
+			const description = (snippet as any).description;
 			this.typescriptSnippets.push({
 				prefix: prefix,
 				body: body,
@@ -285,7 +289,9 @@ export class SuggestAdapter extends Adapter implements monaco.languages.Completi
 						containerName: entry.containerName,
 						navigation: entry,
 						skipCodeSnippet: lineContentAfter.trim() != "",
-						insertText: (isNamespace ? prevWordInfo.word + "." : (entry.containerName ? entry.containerName + "." : "")) + entry.name,
+						insertText: {
+							value: (isNamespace ? prevWordInfo.word + "." : (entry.containerName ? entry.containerName + "." : "")) + entry.name,
+						},
 						range: new monaco.Range(position.lineNumber,
 								position.column - wordInfo.word.length - (isNamespace ? prevWordInfo.word.length + 1 : 0),
 								position.lineNumber,
@@ -339,7 +345,9 @@ export class SuggestAdapter extends Adapter implements monaco.languages.Completi
 		let entry: TypescriptSnippet = this.typescriptSnippets.filter(snippet => snippet.prefix == myItem.label)[0];
 		if (entry) {
 			return new Promise<monaco.languages.CompletionItem>((resolve, reject) => {
-				myItem.insertText = entry.body;
+				myItem.insertText = {
+					value: entry.body
+				}
 				myItem.documentation = entry.description;
 				resolve(myItem);
 			})
@@ -369,7 +377,7 @@ export class SuggestAdapter extends Adapter implements monaco.languages.Completi
 			myItem.kind = SuggestAdapter.convertKind(details.kind);
 			myItem.detail = ts.displayPartsToString(details.displayParts);
 			myItem.documentation = ts.displayPartsToString(details.documentation);
-			myItem.insertText = !myItem.skipCodeSnippet ? codeSnippet : null;
+			myItem.insertText = !myItem.skipCodeSnippet ? {value: codeSnippet} : null;
 			return myItem;
 		}));
 	}
