@@ -245,14 +245,14 @@ export class TypeScriptWorker implements ts.LanguageServiceHost {
 				let parameterDoc = ts.displayPartsToString(documentationComment);
 				let paramExamples = /.*eg:(.*)/i.exec(parameterDoc);
 				if (paramExamples) {
-					let reg: RegExp = /(([^, ]+)[, ]*)/gi;
-					let match: RegExpExecArray;
-					let examples: string[] = []
-					while ((match = reg.exec(paramExamples[1])) != null) {
-						examples.push(match[2]);
-					}
-					if (examples.length > 0) {
-						return examples[0];
+					let reg: RegExp = /"([^"]*)"|'([^']*)'|[^\s,]+/g;
+					let match = reg.exec(paramExamples[1]);
+					if (match && match[1]) {
+						// If there are spaces in the value, it means the value was surrounded with quotes, so add them back
+						if (match[1].indexOf(" ") > -1) {
+							return `"${match[1]}"`;
+						}
+						return match[1];
 					}
 				}
 				if (parameterType && parameterType.flags) {
@@ -287,10 +287,10 @@ export class TypeScriptWorker implements ts.LanguageServiceHost {
 							return `${functionArgument} => {\n    {{${returnValue}}}\n}`
 						} else {
 							const typeString = typeChecker.typeToString(parameterType);
- 							const bracketIndex = typeString.indexOf("[]");
- 							if (flags & ts.ObjectFlags.Tuple || (bracketIndex !== -1 && bracketIndex === typeString.length - 2)) {
- 								return `[]`;
- 							}
+							const bracketIndex = typeString.indexOf("[]");
+							if (flags & ts.ObjectFlags.Tuple || (bracketIndex !== -1 && bracketIndex === typeString.length - 2)) {
+								return `[]`;
+							}
 						}
 					} else if (flags & ts.TypeFlags.String
 						|| flags & ts.TypeFlags.Number
