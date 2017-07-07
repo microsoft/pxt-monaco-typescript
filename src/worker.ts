@@ -267,7 +267,7 @@ export class TypeScriptWorker implements ts.LanguageServiceHost {
 						let objectFlags = (parameterType as ts.ObjectType).objectFlags;
 						if (objectFlags & ts.ObjectFlags.Anonymous) {
 							// Anonymous Function
-							let functionArgument = "";
+							let functionArgument = "()";
 							let returnValue = "";
 							let functionSignature = parameterType.getCallSignatures();
 							if (functionSignature && functionSignature.length > 0) {
@@ -284,7 +284,7 @@ export class TypeScriptWorker implements ts.LanguageServiceHost {
 								let displayPartsStr = ts.displayPartsToString(displayParts);
 								functionArgument = displayPartsStr.substr(0, displayPartsStr.lastIndexOf(":"));
 							}
-							return `${functionArgument} => {\n    {{${returnValue}}}\n}`
+							return `function ${functionArgument} {\n    {{${returnValue}}}\n}`
 						} else {
 							const typeString = typeChecker.typeToString(parameterType);
 							const bracketIndex = typeString.indexOf("[]");
