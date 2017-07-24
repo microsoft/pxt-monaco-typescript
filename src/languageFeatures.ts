@@ -228,30 +228,9 @@ interface TypescriptSnippet {
 export class SuggestAdapter extends Adapter implements monaco.languages.CompletionItemProvider {
 
 	private typescriptSnippets: TypescriptSnippet[] = [];
-	private exclusionMap: { [keyword: string]: number } = Object.create(null);
 
 	constructor(worker: (first: Uri, ...more: Uri[]) => Promise<TypeScriptWorker>) {
 		super(worker);
-
-		this.exclusionMap['from'] = 1;
-		this.exclusionMap['import'] = 1;
-		this.exclusionMap['delete'] = 1;
-		this.exclusionMap['with'] = 1;
-		this.exclusionMap['await'] = 1;
-		this.exclusionMap['try'] = 1;
-		this.exclusionMap['catch'] = 1;
-		this.exclusionMap['finally'] = 1;
-		this.exclusionMap['yield'] = 1;
-		this.exclusionMap['as'] = 1;
-		this.exclusionMap['async'] = 1;
-		this.exclusionMap['abstract'] = 1;
-		this.exclusionMap['any'] = 1;
-		this.exclusionMap['undefined'] = 1;
-		this.exclusionMap['throw'] = 1;
-		this.exclusionMap['symbol'] = 1;
-		this.exclusionMap['super'] = 1;
-		this.exclusionMap['require'] = 1;
-		this.exclusionMap['readonly'] = 1;
 
 		Object.keys(snippets).forEach((snippetKey) => {
 			const snippet = (snippets as any)[snippetKey];
@@ -338,7 +317,6 @@ export class SuggestAdapter extends Adapter implements monaco.languages.Completi
 				return;
 			}
 			let suggestions: MyCompletionItem[] = info.entries
-				.filter(entry => !this.exclusionMap[entry.name])
 				.map(entry => {
 					return {
 						uri: resource,
