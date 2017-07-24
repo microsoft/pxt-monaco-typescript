@@ -21,6 +21,62 @@ const ES6_LIB = {
 	CONTENTS: libes6ts
 };
 
+const ignoredCompletions: {[index: string]: string} = {
+	// Boxed types
+	"Boolean": ts.ScriptElementKind.interfaceElement,
+	"Number": ts.ScriptElementKind.interfaceElement,
+	"String": ts.ScriptElementKind.interfaceElement,
+	"Function": ts.ScriptElementKind.interfaceElement,
+	"Object": ts.ScriptElementKind.interfaceElement,
+
+	// Unsupported types
+	"RegExp": ts.ScriptElementKind.interfaceElement,
+	"IArguments": ts.ScriptElementKind.interfaceElement,
+
+	// C++ types
+	"int16": ts.ScriptElementKind.typeElement,
+	"int32": ts.ScriptElementKind.typeElement,
+	"int8": ts.ScriptElementKind.typeElement,
+	"uint16": ts.ScriptElementKind.typeElement,
+	"uint32": ts.ScriptElementKind.typeElement,
+	"uint8": ts.ScriptElementKind.typeElement,
+
+	// Unsupported keywords
+	"instanceof": ts.ScriptElementKind.keyword,
+	"typeof": ts.ScriptElementKind.keyword,
+	"never": ts.ScriptElementKind.keyword,
+	"debugger": ts.ScriptElementKind.keyword,
+	"declare": ts.ScriptElementKind.keyword,
+	"export": ts.ScriptElementKind.keyword,
+	"global": ts.ScriptElementKind.keyword,
+	"keyof": ts.ScriptElementKind.keyword,
+	"module": ts.ScriptElementKind.keyword,
+	"var": ts.ScriptElementKind.keyword,
+	"in": ts.ScriptElementKind.keyword,
+	"from": ts.ScriptElementKind.keyword,
+	"import": ts.ScriptElementKind.keyword,
+	"delete": ts.ScriptElementKind.keyword,
+	"with": ts.ScriptElementKind.keyword,
+	"await": ts.ScriptElementKind.keyword,
+	"try": ts.ScriptElementKind.keyword,
+	"catch": ts.ScriptElementKind.keyword,
+	"finally": ts.ScriptElementKind.keyword,
+	"yield": ts.ScriptElementKind.keyword,
+	"as": ts.ScriptElementKind.keyword,
+	"async": ts.ScriptElementKind.keyword,
+	"abstract": ts.ScriptElementKind.keyword,
+	"any": ts.ScriptElementKind.keyword,
+	"undefined": ts.ScriptElementKind.keyword,
+	"throw": ts.ScriptElementKind.keyword,
+	"symbol": ts.ScriptElementKind.keyword,
+	"super": ts.ScriptElementKind.keyword,
+	"require": ts.ScriptElementKind.keyword,
+	"readonly": ts.ScriptElementKind.keyword,
+
+	// Internal namespace
+	"helpers": ts.ScriptElementKind.moduleElement
+}
+
 export class TypeScriptWorker implements ts.LanguageServiceHost {
 
 	// --- model sync -----------------------
@@ -140,7 +196,9 @@ export class TypeScriptWorker implements ts.LanguageServiceHost {
 	}
 
 	getCompletionsAtPosition(fileName: string, position: number): Promise<ts.CompletionInfo> {
-		return Promise.as(this._languageService.getCompletionsAtPosition(fileName, position));
+		const completions = this._languageService.getCompletionsAtPosition(fileName, position);
+		completions.entries = completions.entries.filter(e => ignoredCompletions[e.name] !== e.kind)
+		return Promise.as(completions);
 	}
 
 	getCompletionEntryDetails(fileName: string, position: number, entry: string): Promise<ts.CompletionEntryDetails> {
