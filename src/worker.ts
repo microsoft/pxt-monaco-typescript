@@ -314,16 +314,16 @@ export class TypeScriptWorker implements ts.LanguageServiceHost {
 				let documentationComment = parameter.getDocumentationComment();
 				// Get parameter defaults from JsDoc:
 				let parameterDoc = ts.displayPartsToString(documentationComment);
-				let paramExamples = /.*eg:(.*)/i.exec(parameterDoc);
+				let paramExamples = /\beg\.?:\s*(.+)/i.exec(parameterDoc);
 				if (paramExamples) {
-					let reg: RegExp = /"([^"]*)"|'([^']*)'|[^\s,]+/g;
-					let match = reg.exec(paramExamples[1]);
-					if (match && match[1]) {
-						// If there are spaces in the value, it means the value was surrounded with quotes, so add them back
-						if (match[1].indexOf(" ") > -1) {
-							return `"${match[1]}"`;
+					let reg: RegExp = /(?:"([^"]*)")|(?:'([^']*)')|(?:([^\s,]+))/g;
+					let match = reg.exec(paramExamples[1].trim());
+					if (match) {
+						if (match[1] || match[2]) {
+							const val = match[1] || match[2];
+							return `"${val}"`;
 						}
-						return match[1];
+						return match[3];
 					}
 				}
 				if (parameterType && parameterType.flags) {
