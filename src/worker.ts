@@ -318,11 +318,13 @@ export class TypeScriptWorker implements ts.LanguageServiceHost {
 				if (paramExamples) {
 					let reg: RegExp = /(?:"([^"]*)")|(?:'([^']*)')|(?:([^\s,]+))/g;
 					let match = reg.exec(paramExamples[1].trim());
-					if (match && (match[1] || match[2])) {
-						const val = match[1] || match[2];
-						return `"${val}"`;
+					if (match) {
+						if (match[1] || match[2]) {
+							const val = match[1] || match[2];
+							return `"${val}"`;
+						}
+						return match[3];
 					}
-					return match[3];
 				}
 				if (parameterType && parameterType.flags) {
 					let flags = parameterType.flags;
