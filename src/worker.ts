@@ -280,13 +280,15 @@ export class TypeScriptWorker implements ts.LanguageServiceHost {
 		}
 
 		const { displayParts, documentation, symbolKind } = (ts as any).SymbolDisplay.getSymbolDisplayPartsDocumentationAndSymbolKind(typeChecker, symbol, sourceFile, location, location, (ts as any).SemanticMeaning.All);
-		let entryDetails = {
+		let entryDetails: ts.CompletionEntryDetails = {
 			name: entry,
 			kindModifiers: (ts as any).SymbolDisplay.getSymbolModifiers(symbol),
 			kind: symbolKind,
 			displayParts,
-			documentation
+			documentation,
+			tags: undefined
 		};
+
 		let codeSnippet = label;
 
 		if (symbol && symbol.valueDeclaration && symbol.valueDeclaration.kind) {
@@ -331,7 +333,7 @@ export class TypeScriptWorker implements ts.LanguageServiceHost {
 					if (flags & ts.TypeFlags.Enum) {
 						// Enum
 						let enumParameter = <ts.EnumType>parameterType;
-						let enumValue = enumParameter && enumParameter.memberTypes && enumParameter.memberTypes[1] ? enumParameter.memberTypes[1].symbol.name : undefined;
+						let enumValue = enumParameter && enumParameter.symbol ? enumParameter.symbol.name : undefined;
 						if (enumValue)
 							return `${parameterType.symbol.name}.${enumValue}`;
 					} else if (flags & ts.TypeFlags.Object) {
@@ -388,7 +390,7 @@ export class TypeScriptWorker implements ts.LanguageServiceHost {
 				}
 			}
 		}
-		return Promise.as([entryDetails, codeSnippet]);
+		return Promise.as([entryDetails, codeSnippet] as [ts.CompletionEntryDetails, string]);
 	}
 
 }
