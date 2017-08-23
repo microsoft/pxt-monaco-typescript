@@ -330,10 +330,27 @@ export class TypeScriptWorker implements ts.LanguageServiceHost {
 				}
 				if (parameterType && parameterType.flags) {
 					let flags = parameterType.flags;
-					if (flags & ts.TypeFlags.Enum) {
-						// Enum
-						let enumParameter = <ts.EnumType>parameterType;
-						let enumValue = enumParameter && enumParameter.symbol ? enumParameter.symbol.name : undefined;
+					if (flags & ts.TypeFlags.EnumLiteral) {
+						// Enum, go through the enum's declarations to find it's first value
+						const enumParameter = <ts.EnumType>parameterType;
+						let enumValue: string = undefined;
+						if (enumParameter && enumParameter.symbol) {
+							const enumDeclarations = enumParameter.symbol.getDeclarations();
+							let enumDeclaration: ts.EnumDeclaration;
+							for (let i = 0; i < enumDeclarations.length; i++) {
+								const declaration = enumDeclarations[i];
+								if (declaration.kind == ts.SyntaxKind.EnumDeclaration) {
+									enumDeclaration = declaration as ts.EnumDeclaration;
+									break;
+								}
+							}
+							if (enumDeclaration && enumDeclaration.members && enumDeclaration.members.length > 0) {
+								const enumName = enumDeclaration.members[0].name;
+								if (enumName.kind == ts.SyntaxKind.Identifier) {
+									enumValue = (enumName as ts.Identifier).text;
+								}
+							}
+						}
 						if (enumValue)
 							return `${parameterType.symbol.name}.${enumValue}`;
 					} else if (flags & ts.TypeFlags.Object) {
