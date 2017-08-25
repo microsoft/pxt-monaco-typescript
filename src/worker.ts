@@ -197,7 +197,8 @@ export class TypeScriptWorker implements ts.LanguageServiceHost {
 
 	getCompletionsAtPosition(fileName: string, position: number): Promise<ts.CompletionInfo> {
 		const completions = this._languageService.getCompletionsAtPosition(fileName, position);
-		completions.entries = completions.entries.filter(e => ignoredCompletions[e.name] !== e.kind)
+		if (completions && completions.entries)
+			completions.entries = completions.entries.filter(e => ignoredCompletions[e.name] !== e.kind)
 		return Promise.as(completions);
 	}
 
