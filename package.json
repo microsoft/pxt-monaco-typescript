@@ -1,6 +1,6 @@
 {
   "name": "pxt-monaco-typescript",
-  "version": "2.3.3",
+  "version": "2.3.4",
   "description": "TypeScript and JavaScript language support for Monaco Editor in PXT",
   "scripts": {
     "test": "node_modules/.bin/mocha",
