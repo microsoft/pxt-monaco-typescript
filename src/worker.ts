@@ -314,6 +314,34 @@ export class TypeScriptWorker implements ts.LanguageServiceHost {
 				return `\${1:${name}}`;
 			}
 
+			let signatureParameters = (signature: ts.Signature) => {
+				let minArgumentCount = (signature as any).minArgumentCount;
+				let suggestionArgumentNames: string[] = [];
+				signature.parameters.slice(0, minArgumentCount).forEach(parameter => {
+					const parameterName = parameter.getName();
+					const parameterType = typeChecker.getTypeOfSymbolAtLocation(parameter, parameter.valueDeclaration);
+					if (parameterType) {
+						let typeString: string;
+						if (parameterType.symbol) {
+							typeString = typeChecker.getFullyQualifiedName(parameterType.symbol);
+						}
+						else {
+							typeString = typeChecker.typeToString(parameterType);
+						}
+						suggestionArgumentNames.push(`${parameterName}: ${typeString}`);
+					}
+					else {
+						suggestionArgumentNames.push(`${parameterName}`);
+					}
+				})
+
+				if (suggestionArgumentNames.length > 0) {
+					return '(' + suggestionArgumentNames.join(', ') + ')';
+				} else {
+					return '()';
+				}
+			}
+
 			let renderParameter = function (signature: ts.Signature, parameter: ts.Symbol): string {
 				let parameterType = typeChecker.getTypeOfSymbolAtLocation(parameter, parameter.valueDeclaration);
 				let documentationComment = parameter.getDocumentationComment();
@@ -364,9 +392,6 @@ export class TypeScriptWorker implements ts.LanguageServiceHost {
 							let returnValue = "$0";
 							let functionSignature = parameterType.getCallSignatures();
 							if (functionSignature && functionSignature.length > 0) {
-								let displayParts = (ts as any).mapToDisplayParts((writer: ts.DisplayPartsSymbolWriter) => {
-									typeChecker.getSymbolDisplayBuilder().buildSignatureDisplay(functionSignature[0], writer);
-								});
 								let returnType = typeChecker.getReturnTypeOfSignature(functionSignature[0]);
 								if (returnType.flags & ts.TypeFlags.NumberLike)
 									returnValue = "return 0;$0";
@@ -374,8 +399,7 @@ export class TypeScriptWorker implements ts.LanguageServiceHost {
 									returnValue = "return \"\";$0";
 								else if (returnType.flags & ts.TypeFlags.BooleanLike)
 									returnValue = "return false;$0";
-								let displayPartsStr = ts.displayPartsToString(displayParts);
-								functionArgument = displayPartsStr.substr(0, displayPartsStr.lastIndexOf(":"));
+								functionArgument = signatureParameters(functionSignature[0]);
 							}
 							return `function ${functionArgument} {\n\t${returnValue}\n}`
 						} else {
@@ -412,7 +436,6 @@ export class TypeScriptWorker implements ts.LanguageServiceHost {
 		}
 		return Promise.as([entryDetails, codeSnippet] as [ts.CompletionEntryDetails, string]);
 	}
-
 }
 
 export interface ICreateData {
