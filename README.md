@@ -1,3 +1,7 @@
+# Deprecation Notice
+
+This project is **deprecated**! The TypeScript language service used by MakeCode is now part of the compiler in [pxt](https://github.com/microsoft/pxt).
+
 # TypeScript Language Service (PXT fork)
 
 TypeScript and JavaScript language support for the Monaco Editor in PXT.
